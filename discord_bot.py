@@ -1,36 +1,43 @@
 import discord
-from discord.ext import commands
+import asyncio
 import os
 from dotenv import load_dotenv
 
 # Load environment variables from .env
 load_dotenv()
 
-DISCORD_TOKEN = os.getenv("DISCORD_BOT_TOKEN")  # Add your bot token to .env
-DISCORD_CHANNEL_ID = int(os.getenv("DISCORD_CHANNEL_ID"))  # Add your channel ID to .env
+DISCORD_TOKEN = os.getenv("DISCORD_BOT_TOKEN")
+DISCORD_CHANNEL_ID = int(os.getenv("DISCORD_CHANNEL_ID"))
 
-# Initialize the bot
+# Initialize Discord client
 intents = discord.Intents.default()
-bot = commands.Bot(command_prefix="!", intents=intents)
+client = discord.Client(intents=intents)
+MESSAGE = ""
 
 
-# Function to send a message to a specific channel
 async def send_discord_message(message):
-    channel = bot.get_channel(DISCORD_CHANNEL_ID)
-    if channel:
-        await channel.send(message)
-    else:
-        print("Channel not found!")
+    """
+    Function to send a message to a Discord channel.
+    """
+    global MESSAGE
+    MESSAGE = message
+    await client.start(DISCORD_TOKEN)  # Start the bot
 
 
-@bot.event
+@client.event
 async def on_ready():
-    print(f"We have logged in as {bot.user}")
+    """
+    Event handler for when the bot is ready.
+    """
+    channel = client.get_channel(DISCORD_CHANNEL_ID)
+    if channel:
+        await channel.send(MESSAGE)
+        print(f"Message sent: {MESSAGE}")
+    else:
+        print(f"Channel with ID {DISCORD_CHANNEL_ID} not found!")
+    await client.close()  # Close the client after sending the message
 
-    # Example message
-    message = "Trade Bot is online and ready to send notifications!"
-    await send_discord_message(message)
 
 if __name__ == "__main__":
-    # Run the bot
-    bot.run(DISCORD_TOKEN)
+    # Use asyncio to run the async function
+    asyncio.run(send_discord_message("Bababooey"))

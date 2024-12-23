@@ -1,15 +1,18 @@
 import asyncio
+from threading import Thread
 from fetch_data import fetch_candle_data
 from trading_algorithms import *
 from discord_bot import send_discord_message
 
 async def process_signals(data, symbol):
     for i, row in data.iterrows():
-        # Flatten MultiIndex columns
-        data.columns = ['_'.join(filter(None, col)) for col in data.columns]
+        buy_signal = row[('Buy_Signal', '')]
+        sell_signal = row[('Sell_Signal', '')]
 
-        buy_signal = row['Buy_Signal']  # Access the flattened column
-        sell_signal = row['Sell_Signal']
+        from dotenv import load_dotenv
+
+        # Load environment variables from .env
+        load_dotenv()
 
         if bool(buy_signal):  # Explicitly convert to a boolean
             await send_discord_message(f"Buy signal for {symbol} at {row['Close']}")
@@ -17,6 +20,7 @@ async def process_signals(data, symbol):
             await send_discord_message(f"Sell signal for {symbol} at {row['Close']}")
         else:
             await send_discord_message(f"No signal for {symbol}. Current data: {row.to_dict()}")
+
 
 if __name__ == "__main__":
     # Fetch data
