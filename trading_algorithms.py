@@ -30,26 +30,46 @@ def calculate_trailing_stop(data, keyvalue, atr_column='ATR', src_column='Close'
     :param src_column: Name of the source price column (default is 'Close').
     :return: Updated DataFrame with trailing stop levels and signals.
     """
+    # Ensure columns exist
+    if atr_column not in data.columns or src_column not in data.columns:
+        raise ValueError(f"Columns '{atr_column}' or '{src_column}' not found in the DataFrame.")
+
+    # Ensure index is unique and sorted
+    data = data.reset_index(drop=True)
+
+    # Calculate n_loss
     n_loss = keyvalue * data[atr_column]
-    trailing_stop = [0] * len(data)
-    position = [0] * len(data)  # 1 for buy, -1 for sell, 0 for neutral
+
+    # Initialize trailing stop and positions
+    trailing_stop = [0.0] * len(data)
+    position = [0] * len(data)
 
     for i in range(1, len(data)):
-        if data[src_column].iloc[i] > trailing_stop[i - 1] and data[src_column].iloc[i - 1] > trailing_stop[i - 1]:
-            trailing_stop[i] = max(trailing_stop[i - 1], data[src_column].iloc[i] - n_loss.iloc[i])
-        elif data[src_column].iloc[i] < trailing_stop[i - 1] and data[src_column].iloc[i - 1] < trailing_stop[i - 1]:
-            trailing_stop[i] = min(trailing_stop[i - 1], data[src_column].iloc[i] + n_loss.iloc[i])
+        # Extract scalar values
+        current_price = float(data[src_column].iloc[i])
+        previous_price = float(data[src_column].iloc[i - 1])
+        previous_trailing_stop = float(trailing_stop[i - 1])
+
+        if current_price > previous_trailing_stop and previous_price > previous_trailing_stop:
+            trailing_stop[i] = max(previous_trailing_stop, current_price - n_loss.iloc[i])
+        elif current_price < previous_trailing_stop and previous_price < previous_trailing_stop:
+            trailing_stop[i] = min(previous_trailing_stop, current_price + n_loss.iloc[i])
         else:
-            trailing_stop[i] = data[src_column].iloc[i] - n_loss.iloc[i] if data[src_column].iloc[i] > trailing_stop[
-                i - 1] else data[src_column].iloc[i] + n_loss.iloc[i]
+            trailing_stop[i] = (
+                current_price - n_loss.iloc[i]
+                if current_price > previous_trailing_stop
+                else current_price + n_loss.iloc[i]
+            )
 
-        if data[src_column].iloc[i - 1] < trailing_stop[i - 1] and data[src_column].iloc[i] > trailing_stop[i]:
-            position[i] = 1  # Buy
-        elif data[src_column].iloc[i - 1] > trailing_stop[i - 1] and data[src_column].iloc[i] < trailing_stop[i]:
-            position[i] = -1  # Sell
+        if previous_price < previous_trailing_stop and current_price > trailing_stop[i]:
+            position[i] = 1  # Buy signal
+        elif previous_price > previous_trailing_stop and current_price < trailing_stop[i]:
+            position[i] = -1  # Sell signal
 
+    # Add trailing stop and position to the DataFrame
     data['Trailing_Stop'] = trailing_stop
     data['Position'] = position
+
     return data
 
 
