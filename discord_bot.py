@@ -15,8 +15,8 @@ bot = commands.Bot(command_prefix="!", intents=intents)
 
 
 # Function to send a message to a specific channel
-async def send_discord_message(channel_id, message):
-    channel = bot.get_channel(channel_id)
+async def send_discord_message(message):
+    channel = bot.get_channel(DISCORD_CHANNEL_ID)
     if channel:
         await channel.send(message)
     else:
@@ -29,8 +29,8 @@ async def on_ready():
 
     # Example message
     message = "Trade Bot is online and ready to send notifications!"
-    await send_discord_message(DISCORD_CHANNEL_ID, message)
+    await send_discord_message(message)
 
-
-# Run the bot
-bot.run(DISCORD_TOKEN)
+if __name__ == "__main__":
+    # Run the bot
+    bot.run(DISCORD_TOKEN)
